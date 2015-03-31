@@ -4,5 +4,4 @@ C:\Development\DirectoryManagerTest\DirectoryManagerTest\bin\Debug\DirectoryMana
 C:\Development\DirectoryManagerTest\DirectoryManagerTest\bin\Debug\DirectoryManagerTest.pdb
 C:\Development\DirectoryManagerTest\DirectoryManagerTest\obj\Debug\DirectoryManagerTest.exe
 C:\Development\DirectoryManagerTest\DirectoryManagerTest\obj\Debug\DirectoryManagerTest.pdb
-C:\Development\DirectoryManagerTest\DirectoryManagerTest\bin\Debug\eMotive.CMS.Extensions.dll
 C:\Development\DirectoryManagerTest\DirectoryManagerTest\bin\Debug\eMotive.CMS.Extensions.pdb

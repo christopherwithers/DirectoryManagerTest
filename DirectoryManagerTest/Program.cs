@@ -5,11 +5,12 @@ namespace DirectoryManagerTest
 {
     public class Program
     {
-        private readonly static DocumentManagerService _dms = new DocumentManagerService();
+        private readonly static DocumentManagerService Dms = new DocumentManagerService();
 
         static void Main(string[] args)
         {
-            Console.Write(_dms.CreateUploadLocation("Gallery", "Folder2"));
+            //Console.Write(Dms.CreateUploadLocation("Gallery", "Folder3"));
+            Console.Write(Dms.MergeFolders("Gallery", new []{"New3"}, new [] {"Folder4"}));
         }
     }
 }
