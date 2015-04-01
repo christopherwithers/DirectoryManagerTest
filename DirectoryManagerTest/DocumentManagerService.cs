@@ -125,29 +125,32 @@ namespace DirectoryManagerTest
             Directory.Delete(toDelete);
         }
 
-        public bool MergeFolders(string application, string[] oldLocation, string[] newLocation)
+        public bool MergeFoldersWithinApplication(string application, string[] mergeTo, string[] mergeFrom)
         {
-            var oldDirLocation = string.Join("/", oldLocation);
-            var newDirLocation = string.Join("/", newLocation);
-            var oldPath = string.Format("{0}/{1}/{2}", _uploadDirectory, application, oldDirLocation);
-            var newPath = string.Format("{0}/{1}/{2}", _uploadDirectory, application, newDirLocation);
+            var mergeFromLocation = string.Join("/", mergeFrom);
+            var mergeToLocation = string.Join("/", mergeTo);
 
-            if (!Directory.Exists(oldPath))
+            var mergeFromPath = string.Format("{0}/{1}/{2}", _uploadDirectory, application, mergeFromLocation);
+            var mergeToPath = string.Format("{0}/{1}/{2}", _uploadDirectory, application, mergeToLocation);
+
+            if (!Directory.Exists(mergeFromPath))
             {
-                Console.WriteLine("Old Dir Not Found!");
+                Console.WriteLine("Merge From Directory Not Found!");
                 return false;
             }
 
-            if (!Directory.Exists(newPath))
+            if (!Directory.Exists(mergeToPath))
             {
-                Console.WriteLine("New Dir Not Found!");
+                Console.WriteLine("Merge From Directory Not Found!");
                 return false;
             }
+
             var success = true;
+
             try
             {
 
-                CopyAll(new DirectoryInfo(oldPath), new DirectoryInfo(newPath));
+                CopyAll(new DirectoryInfo(mergeFromPath), new DirectoryInfo(mergeToPath));
             }
             catch (Exception ex)
             {
@@ -155,48 +158,57 @@ namespace DirectoryManagerTest
             }
 
             if(success)
-                Delete(newPath);
+                Delete(mergeFromPath);
+
             return success;
         }
 
-        public bool MergeUploadWithApplication(string oldApplication, string applicationToMerge)
+        public bool MergeApplicationFolders(string mergeToApplication, string mergeFromApplication)
         {
-            if (String.Equals(oldApplication, applicationToMerge, StringComparison.CurrentCultureIgnoreCase))
+          /*  if (String.Equals(mergeToApplication, mergeFromApplication, StringComparison.CurrentCultureIgnoreCase))
             {
                 return false;
             }
 
-            var oldApp = string.Format("{0}/{1}", _uploadDirectory, oldApplication);
-            var appToMerge = string.Format("{0}/{1}", _uploadDirectory, applicationToMerge);
+            var mergeToPath = string.Format("{0}/{1}", _uploadDirectory, mergeToApplication);
+            var mergeFromPath = string.Format("{0}/{1}", _uploadDirectory, mergeFromApplication);
 
-            // Check if the target directory exists, if not, create it.
-            if (!Directory.Exists(oldApp))
+            if (!Directory.Exists(mergeToPath))
             {
-                //Directory.CreateDirectory(target.FullName);
+                Console.WriteLine("Merge To Directory Not Found!");
                 return false;
             }
 
-            if (!Directory.Exists(applicationToMerge))
+            if (!Directory.Exists(mergeFromPath))
             {
-                //Directory.CreateDirectory(target.FullName);
+                Console.WriteLine("Merge From Directory Not Found!");
                 return false;
             }
 
-            CopyAll(new DirectoryInfo(appToMerge), new DirectoryInfo(oldApp));
+            var success = true;
 
-            return true;
+            try
+            {
+                CopyAll(new DirectoryInfo(mergeFromPath), new DirectoryInfo(mergeToPath));
+            }
+            catch (Exception ex)
+            {
+                success = false;
+            }
+
+            if (success)
+                Delete(mergeFromPath);
+
+            return success;*/
         }
 
         private static void CopyAll(DirectoryInfo source, DirectoryInfo target)
         {
-            // Copy each file into it's new directory.
             foreach (var fi in source.GetFiles())
             {
-                Console.WriteLine(@"Copying {0}\{1}", target.FullName, fi.Name);
                 fi.CopyTo(Path.Combine(target.ToString(), fi.Name), true);
             }
 
-            // Copy each subdirectory using recursion.
             foreach (var diSourceSubDir in source.GetDirectories())
             {
                 var nextTargetSubDir =
