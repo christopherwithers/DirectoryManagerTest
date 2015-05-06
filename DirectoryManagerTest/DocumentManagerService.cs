@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Configuration;
-using System.Dynamic;
 using System.IO;
-using System.Web.Hosting;
-using eMotive.CMS.Extensions;
+using System.Runtime.Serialization;
 
 namespace DirectoryManagerTest
 {
     public class DocumentManagerService
     {
         private readonly string _uploadDirectory;
+        
 
         public DocumentManagerService()
         {
@@ -165,7 +164,8 @@ namespace DirectoryManagerTest
 
         public bool MergeApplicationFolders(string mergeToApplication, string mergeFromApplication)
         {
-          /*  if (String.Equals(mergeToApplication, mergeFromApplication, StringComparison.CurrentCultureIgnoreCase))
+            return false;
+            /*  if (String.Equals(mergeToApplication, mergeFromApplication, StringComparison.CurrentCultureIgnoreCase))
             {
                 return false;
             }
