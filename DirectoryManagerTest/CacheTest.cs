@@ -13,6 +13,13 @@ namespace DirectoryManagerTest
         public int ID { get; set; }
     }
 
+    public class CacheDependencyItem<T>
+    {
+        public int ID { get; set; }
+        public T Item { get; set; }
+        public IEnumerable<CacheDependency> Dependencies { get; set; } 
+    }
+
     public class DotNetCache : ICache
     {
         // private static CacheItemPolicy Policy = new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10)};
@@ -29,7 +36,7 @@ namespace DirectoryManagerTest
                 return false;
 
             var itemKey = GenerateCacheName(typeof(T).FullName, id);
-            var cachePolicy = new CacheItemPolicy { AbsoluteExpiration = new DateTimeOffset(DateTime.UtcNow.AddMinutes(10)) };
+            var cachePolicy = new CacheItemPolicy { SlidingExpiration = new TimeSpan(0,20,0) };
             var lockObject = new object();
 
             Cache.AddOrGetExisting(GenerateCacheLockName(itemKey), lockObject, new DateTimeOffset(DateTime.UtcNow.AddMinutes(5)));
@@ -96,7 +103,7 @@ namespace DirectoryManagerTest
 
                 lock (lockObject)
                 {
-                    Cache.Add(itemKey, item, new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10) });
+                    Cache.Add(itemKey, item, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) });
                 }
             }
 
@@ -122,7 +129,7 @@ namespace DirectoryManagerTest
 
             lock (lockObject)
             {
-                Cache.Add(listKey, ids, new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10) });
+                Cache.Add(listKey, ids, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) });
             }
 
             foreach (var item in collection)
@@ -133,14 +140,50 @@ namespace DirectoryManagerTest
 
                 lock (lockObject)
                 {
-                    Cache.Add(itemKey, item, new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10) });
+                    Cache.Add(itemKey, item, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) });
                 }
             }
 
             return true;
         }
 
-        public bool PutAllCollection<T>(IEnumerable<T> collection, Func<T, string>[] identifierFields)
+        public bool PutCollection<T>(IEnumerable<CacheDependencyItem<T>> items)
+        {
+            if (Cache == null)
+                return false;
+
+
+            if (!items.HasContent())
+                return false;
+
+            var type = typeof(T).FullName;
+
+
+            foreach (var item in items)
+            {
+                var itemKey = GenerateCacheName(type, item.ID);
+
+                var cachePolicy = new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) };
+                var lockObject = new object();
+
+                Cache.AddOrGetExisting(GenerateCacheLockName(itemKey), lockObject, new DateTimeOffset(DateTime.UtcNow.AddMinutes(5)));
+
+                if (item.Dependencies.HasContent())
+                {
+                    cachePolicy.ChangeMonitors.Add(Cache.CreateCacheEntryChangeMonitor(item.Dependencies.Select(n => GenerateCacheName(n.Type.FullName, n.ID))));
+                }
+
+                lock (lockObject)
+                {
+                    Cache.Add(itemKey, item.Item, cachePolicy);
+                }
+            }
+
+
+            return true;
+        }
+
+        public bool PutAllCollection<T>(IEnumerable<CacheDependencyItem<T>> collection)
         {
             if (Cache == null)
                 return false;
@@ -148,32 +191,48 @@ namespace DirectoryManagerTest
             if (!collection.HasContent())
                 return false;
 
+            var type = typeof(T).FullName;
+
+            var listKey = string.Format("{0}_ALL", type);
+
+            var ids = collection.Select(n => n.ID);
+
+            var lockObject = new object();
+
+            lock (lockObject)
+            {
+                Cache.Add(listKey, ids, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) });
+            }
+
+            foreach (var item in collection)
+            {
+                var itemKey = GenerateCacheName(type, item.ID);
+                var cachePolicy = new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) };
+
+                Cache.AddOrGetExisting(GenerateCacheLockName(itemKey), lockObject, DateTime.Now.AddMinutes(5));
+
+                if (item.Dependencies.HasContent())
+                {
+                    cachePolicy.ChangeMonitors.Add(Cache.CreateCacheEntryChangeMonitor(item.Dependencies.Select(n => GenerateCacheName(n.Type.FullName, n.ID))));
+                }
+
+                lock (lockObject)
+                {
+                    Cache.Add(itemKey, item, cachePolicy);
+                }
+            }
+
+            return true;
+        }
+
+        public bool PutCollection<T>(IEnumerable<CacheDependencyItem<T>> items, IEnumerable<CacheDependencyItem<T>> callback)
+        {
             throw new NotImplementedException();
-            /*   var type = typeof(T).Name;
+        }
 
-               var listKey = string.Format("{0}_ALL", type);
-
-               var ids = collection.Select(identifierField).Distinct();
-
-               var lockObject = new object();
-
-               lock (lockObject)
-               {
-                   Cache.Add(listKey, ids, new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10) });
-               }
-
-               foreach (var item in collection)
-               {
-                   var itemKey = GenerateCacheName(type, identifierField(item));
-
-                   Cache.AddOrGetExisting(GenerateCacheLockName(itemKey), lockObject, DateTime.Now.AddMinutes(5));
-                   lock (lockObject)
-                   {
-                       Cache.Add(itemKey, item, new CacheItemPolicy { AbsoluteExpiration = DateTime.Now.AddMinutes(10) });
-                   }
-               }
-
-               return true;*/
+        public bool PutAllCollection<T>(IEnumerable<CacheDependencyItem<T>> collection, IEnumerable<CacheDependencyItem<T>> callback)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<T> FetchCollection<T>(Func<T, int> identifierField, IEnumerable<int> ids, Func<IEnumerable<int>, IEnumerable<T>> callback)
@@ -213,6 +272,7 @@ namespace DirectoryManagerTest
 
             return fetchedItems;
         }
+
 
         public IEnumerable<T> FetchAllCollection<T>(Func<T, int> identifierField, Func<IEnumerable<int>, IEnumerable<T>> callback)
         {
@@ -271,6 +331,43 @@ namespace DirectoryManagerTest
             Cache.Remove(itemKey);
 
             return true;
+        }
+
+        public bool PutItem<T>(T value, string key, params CacheDependency[] dependencies)
+        {
+            if (Cache == null)
+                return false;
+
+
+            var cachePolicy = new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 20, 0) };
+            var lockObject = new object();
+
+            Cache.AddOrGetExisting(GenerateCacheLockName(key), lockObject, new DateTimeOffset(DateTime.UtcNow.AddMinutes(5)));
+
+            if (dependencies.HasContent())
+            {
+                cachePolicy.ChangeMonitors.Add(Cache.CreateCacheEntryChangeMonitor(dependencies.Select(n => GenerateCacheName(n.Type.FullName, n.ID))));
+            }
+
+            lock (lockObject)
+            {
+                Cache.Add(key, value, cachePolicy);
+            }
+
+            return true;
+        }
+
+        public T FetchItem<T>(string key)
+        {
+            if (Cache == null)
+                return default(T);
+
+            var cahcedItem = Cache[key];
+
+            if (cahcedItem == null)
+                return default(T);
+
+            return (T)Cache[key];
         }
     }
 }

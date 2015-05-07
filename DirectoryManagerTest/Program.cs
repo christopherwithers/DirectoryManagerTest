@@ -86,9 +86,9 @@ namespace DirectoryManagerTest
 
             //Cache.PutItem(t1, t1.id);
           //  Cache.PutItem(t2, new[] { t2.id.ToString(), t2.name });
-
-            Cache.PutItem(t1, t1.id, new CacheDependency { ID = t2.id, Type = t2.GetType() });
             Cache.PutItem(t2, t2.id);
+            Cache.PutItem(t1, t1.id, new CacheDependency { ID = t2.id, Type = t2.GetType() });
+            
 
            // Cache.PutItem(t1, new[] { t1.id.ToString(), t1.name });
            // Cache.PutItem(t2, new[] { t2.id.ToString(), t2.name });
